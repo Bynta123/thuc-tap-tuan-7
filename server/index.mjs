@@ -188,6 +188,86 @@ app.use('/api/uploads', express.static(UPLOADS_DIR));
 app.use('/assets', express.static(PUBLIC_DIR));
 app.use('/uploads', express.static(UPLOADS_DIR));
 
+// ---------------------------------------------------------------------------
+// Lưu trữ bền cho Vercel (Upstash Redis qua REST API).
+//
+// Vì sao cần: trên Vercel mỗi bản sao của API có thư mục /tmp riêng, nên dữ liệu ghi ở bản này
+// không thấy được ở bản khác (thêm xong rồi xóa/sửa báo "không tìm thấy").
+// Cách làm: trước mỗi request /api, nạp dữ liệu từ Redis vào file DB_PATH; sau request ghi
+// (POST/PUT/PATCH/DELETE) thành công, đẩy file DB_PATH ngược lên Redis rồi mới trả response.
+// Các handler bên dưới vẫn dùng loadDb/saveDb như cũ.
+// Chỉ bật khi có biến môi trường Redis; chạy local/Docker không đặt biến này thì không đổi gì.
+// ---------------------------------------------------------------------------
+const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+const REDIS_DB_KEY = 'pm:db';
+const USE_REDIS = Boolean(REDIS_URL && REDIS_TOKEN);
+
+async function redisCommand(command) {
+  const response = await fetch(REDIS_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${REDIS_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(command),
+  });
+  if (!response.ok) {
+    throw new Error(`Redis trả về HTTP ${response.status}`);
+  }
+  const payload = await response.json();
+  if (payload.error) {
+    throw new Error(payload.error);
+  }
+  return payload.result;
+}
+
+async function pullDbFromRedis() {
+  let raw = await redisCommand(['GET', REDIS_DB_KEY]);
+  if (raw === null || raw === undefined) {
+    // Lần đầu chưa có dữ liệu: tạo dữ liệu mẫu rồi lưu lên Redis.
+    // NX = chỉ ghi nếu chưa ai ghi trước, tránh hai bản sao ghi đè nhau.
+    if (fs.existsSync(DB_PATH)) fs.unlinkSync(DB_PATH);
+    loadDb();
+    await redisCommand(['SET', REDIS_DB_KEY, fs.readFileSync(DB_PATH, 'utf8'), 'NX']);
+    raw = await redisCommand(['GET', REDIS_DB_KEY]);
+  }
+  if (raw) {
+    fs.writeFileSync(DB_PATH, raw, 'utf8');
+  }
+}
+
+async function pushDbToRedis() {
+  await redisCommand(['SET', REDIS_DB_KEY, fs.readFileSync(DB_PATH, 'utf8')]);
+}
+
+if (USE_REDIS) {
+  app.use('/api', async (req, res, next) => {
+    if (req.path === '/health') return next();
+
+    try {
+      await pullDbFromRedis();
+    } catch (error) {
+      console.error('[Redis] Không nạp được dữ liệu:', error);
+      return sendError(res, 503, 'STORAGE_UNAVAILABLE', 'Không kết nối được kho dữ liệu, vui lòng thử lại.');
+    }
+
+    const isWrite = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
+    if (isWrite) {
+      const originalEnd = res.end.bind(res);
+      res.end = (...args) => {
+        res.end = originalEnd;
+        const persist = res.statusCode < 400 ? pushDbToRedis() : Promise.resolve();
+        persist
+          .catch((error) => console.error('[Redis] Không lưu được dữ liệu:', error))
+          .finally(() => originalEnd(...args));
+        return res;
+      };
+    }
+    return next();
+  });
+}
+
 app.use((req, res, next) => {
   const sim = req.headers['x-simulate-error'];
   if (!sim) return next();
