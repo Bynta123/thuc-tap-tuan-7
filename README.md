@@ -1,5 +1,7 @@
 # Quản lý sản phẩm — React + TypeScript + Axios + Nested Routing (Tuần 7: Performance & Mini Project)
 
+> **Live Demo Vercel:** [https://thuc-tap-tuan-7.vercel.app/products](https://thuc-tap-tuan-7.vercel.app/products)
+
 Ứng dụng thực hành xây dựng hệ thống **Quản lý sản phẩm** hoàn chỉnh theo kiến trúc chuẩn doanh nghiệp:
 
 - **Routing nhiều cấp (Nested Routes)** với `react-router-dom`:

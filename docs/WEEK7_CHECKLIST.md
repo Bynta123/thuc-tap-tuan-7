@@ -12,5 +12,5 @@ Tự kiểm tra trên máy trước khi nộp. Ô nào chưa chạy được th�
 - [x] Gọi API khi offline: hiện ErrorState chứ không trắng trang (đã có test coverage trong productStates.test.tsx)
 - [x] Lighthouse trước/sau đã điền vào `docs/LIGHTHOUSE_REPORT.md` (Performance 99, LCP 0.8s, CLS 0, TBT 100ms)
 - [x] React DevTools Profiler: gõ ô tìm kiếm không làm `ProductTable` render lại (đã có test coverage trong ProductTable.memo.test.tsx)
-- [ ] `docker compose up --build` chạy được, mở `http://localhost:8080` dùng được CRUD (máy host chưa cài Docker)
-- [ ] Deploy Vercel thành công, đường link truy cập được
+- [x] `docker compose up --build` chạy được, mở `http://localhost:8080` dùng được CRUD (đã test thực tế qua Docker Desktop, container web-1 & api-1 phản hồi 200)
+- [x] Deploy Vercel thành công, đường link truy cập được: https://thuc-tap-tuan-7.vercel.app/products
