@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+reports
+.git
+.gitignore
+.env*.local
+server/data/db.json
+server/uploads/*
+npm-debug.log
+Dockerfile*
+docker-compose.yml

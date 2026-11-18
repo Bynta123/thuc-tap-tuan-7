@@ -1,0 +1,26 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      # Đổi giá trị này khi chạy thật (ký token đăng nhập)
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-in-production}
+    volumes:
+      - api-data:/app/server/data
+      - api-uploads:/app/server/uploads
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  api-data:
+  api-uploads:

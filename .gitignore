@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env*.local
+server/data/db.json
+server/uploads/*
+!server/uploads/.gitkeep
+reports

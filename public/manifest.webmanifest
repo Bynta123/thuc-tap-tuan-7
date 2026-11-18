@@ -1,0 +1,14 @@
+{
+  "name": "Quản lý sản phẩm",
+  "short_name": "Sản phẩm",
+  "description": "Ứng dụng quản lý sản phẩm React + TypeScript",
+  "lang": "vi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#1d6ce0",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
